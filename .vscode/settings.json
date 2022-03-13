@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "unistd.h": "c",
+        "ostream": "cpp",
+        "*.tcc": "cpp",
+        "iosfwd": "cpp"
+    }
+}
