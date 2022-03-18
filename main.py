@@ -1,6 +1,5 @@
 #  Gian Luca Rivera - 18049
 
-from ntpath import join
 from binarytree import Node
 import graphviz
 import ast
@@ -30,7 +29,7 @@ arboles_temporales = [] # arboles temporales / hijos
 alfabeto = "abcdefghijklmnopqrstuvwxyz"
 operadores ="*+?"
 # alfabeto = 0-25 ; operadores= 26(*), 27(+), 28(?) ; 29(.) ; 30(|)
-caracteres = alfabeto + operadores + "." + "|"
+caracteres = alfabeto + operadores + "." + "|" + "#"
 SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 
 
@@ -274,6 +273,144 @@ def simulacion_AFN(w, transiciones, estado_final):
     else:
         return False
 
+# Si con ese nodo se puede devolver cadena vacia o no
+def anulable(nodo, data):
+    # or entre valor anulable izquierdo y valor anulable hijo derecho
+    # si cualquiera de los hijos es anulable
+    if data[str(nodo.value)]["Valor"] == "|":
+        data[str(nodo.value)]["Anulable"] = data[str(nodo.left.value)]["Anulable"] or data[str(nodo.right.value)]["Anulable"]
+    # and entre el anulablke, si los dos hijos son anulables
+    elif data[str(nodo.value)]["Valor"] == ".":
+        data[str(nodo.value)]["Anulable"] = data[str(nodo.left.value)]["Anulable"] and data[str(nodo.right.value)]["Anulable"]
+    # siempre es true
+    elif data[str(nodo.value)]["Valor"] == "*":
+        data[str(nodo.value)]["Anulable"] = True
+    # siempre es true 
+    elif data[str(nodo.value)]["Valor"] == "?":
+        data[str(nodo.value)]["Anulable"] = True
+    # Siempre false
+    elif data[str(nodo.value)]["Valor"] == "+":
+        data[str(nodo.value)]["Anulable"] == False
+    # Siemre es verdadero
+    elif data[str(nodo.value)]["Valor"] == "E":
+        data[str(nodo.value)]["Anulable"] == True
+    # Una letra por default es falso.
+    else:
+        data[str(nodo.value)]["Anulable"] = False
+
+def primera_posicion(nodo, data):
+    # Devuelve una lista de la combinacion de la primera posicion de los hijos
+    if data[str(nodo.value)]["Valor"] == "|":
+        data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"], data[str(nodo.right.value)]["Primera posicion"]] for item in sublist]
+    # Si el hijo izquierdo es anulable, entonces se una las primeras posiciones de los hijos, de lo contrario solo es la primera posicion del hijo izquierdo
+    elif data[str(nodo.value)]["Valor"] == ".":
+        if data[str(nodo.left.value)]["Anulable"]:
+            data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"], data[str(nodo.right.value)]["Primera posicion"]] for item in sublist]
+        else:
+            data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"]] for item in sublist]
+    # Se obtiene la primera posicion de su hijo
+    elif data[str(nodo.value)]["Valor"] == "*":
+        data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "?":
+        data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"], data[str(nodo.right.value)]["Primera posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "+":
+        data[str(nodo.value)]["Primera posicion"] = [item for sublist in [data[str(nodo.left.value)]["Primera posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "E":
+        data[str(nodo.value)]["Primera posicion"] = []
+    # Primera posicion es la letra
+    else:
+        data[str(nodo.value)]["Primera posicion"] = [nodo.value]
+
+def ultima_posicion(nodo, data):
+    if data[str(nodo.value)]["Valor"] == "|":
+        data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.left.value)]["Ultima posicion"], data[str(nodo.right.value)]["Ultima posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == ".":
+        if data[str(nodo.right.value)]["Anulable"]:
+            data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.left.value)]["Ultima posicion"], data[str(nodo.right.value)]["Ultima posicion"]] for item in sublist]
+        else:
+            data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.right.value)]["Ultima posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "*":
+        data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.left.value)]["Ultima posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "?":
+        data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.left.value)]["Ultima posicion"], data[str(nodo.right.value)]["Ultima posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "+":
+        data[str(nodo.value)]["Ultima posicion"] = [item for sublist in [data[str(nodo.left.value)]["Ultima posicion"]] for item in sublist]
+    elif data[str(nodo.value)]["Valor"] == "E":
+        data[str(nodo.value)]["Ultima posicion"] = []
+    else:
+        data[str(nodo.value)]["Ultima posicion"] = [nodo.value]
+
+# Solo para concatenacion y cerradura de kleene
+def siguiente_posicion(nodo, data):
+    # Para cada uno de las ultimas posiciones del hijo de la izquierda se pone las posiciones del hijo de la derecha 
+    if data[str(nodo.value)]["Valor"] == ".":
+        for up in data[str(nodo.left.value)]["Ultima posicion"]:
+            for pp in data[str(nodo.right.value)]["Primera posicion"]:
+                if pp not in data[str(nodo.left.value)]["Siguiente posicion"]:
+                    data[str(up)]["Siguiente posicion"].append(pp)
+    # Como solo es un hijo, para cada ultima posicion del hijo, se agrega TODO
+    elif data[str(nodo.value)]["Valor"] == "*":
+        for up in data[str(nodo.left.value)]["Ultima posicion"]:
+            for pp in data[str(nodo.left.value)]["Primera posicion"]:
+                if pp not in data[str(nodo.left.value)]["Siguiente posicion"]:
+                    data[str(up)]["Siguiente posicion"].append(pp)
+
+#El primer valor de la tabla es las primeras posiciones de la raiz del arbol
+def transiciones_directo(transiciones, arbol, data, alfabeto):
+    contador = 0
+    transiciones[str(data[str(arbol.value)]["Primera posicion"])] = {
+        "Estado": "S"+str(contador),
+    }
+    for letra in alfabeto:
+        transiciones[str(data[str(arbol.value)]["Primera posicion"])][letra] = None
+    contador += 1
+    cont = True
+    while(cont):
+        initial_size = len(transiciones)
+        keys = list(transiciones.keys())
+        for llave in keys:
+            for letra in alfabeto:
+                if transiciones[llave][letra] == None:
+                    new_state = []
+                    estado = ast.literal_eval(llave)
+                    for i in estado:
+                        if data[str(i)]["Valor"] == letra:
+                            new_state.append(data[str(i)]["Siguiente posicion"])
+                    new_state = [item for sublist in new_state for item in sublist]
+                    new_state = list(set(new_state))
+                    new_state.sort()
+                    if len(new_state) > 0:
+                        if str(new_state) not in transiciones:
+                            transiciones[str(new_state)] = {
+                                "Estado": "S"+str(contador)
+                            }
+                            for letter in alfabeto:
+                                transiciones[str(new_state)][letter] = None
+                            contador +=1
+                            transiciones[llave][letra] = transiciones[str(new_state)]["Estado"]
+                        else:
+                            transiciones[llave][letra] = transiciones[str(new_state)]["Estado"]
+        final_size = len(transiciones)
+        if initial_size == final_size:
+            cont = not all(transiciones.values())
+
+def simulacion_AFD(transiciones, w, final):
+    estado_actual = "S0"
+    for char in w:
+        llave = ""
+        for k, v in transiciones.items():
+            if v["Estado"] == estado_actual and v[char] != None:
+                llave = k
+            elif v["Estado"] == estado_actual and v[char] == None:
+                return False
+        estado_actual = transiciones[llave][char]
+    for llave, v in transiciones.items():
+        if v["Estado"] == estado_actual:
+            estados = ast.literal_eval(llave)
+            if final in estados:
+                return True
+            else:
+                return False
 
 padre_actual = analizador_expresion(r, None, padre_actual)
 print(binarytree(padre_actual))
@@ -518,3 +655,71 @@ for llave, valor in sub_afd_transiciones.items():
             dot_subconjuntos.edge(valor["Estado del AFD"], valor[j], j)
 
 dot_subconjuntos.view()
+
+
+
+# ------------------------------ AFD dada una expresion regular ------------------------------
+# Se agrega el # que representa el ultimo caracter para el estado de aceptacion
+re = "("+r+")#" # para algoritmo 3
+current_node_head2 = None
+current_node_head2 = analizador_expresion(re, None, current_node_head2)
+tree = binarytree(current_node_head2)
+
+data = {}
+transiciones2 = {}
+alfabeto2=[]
+arbol = tree
+arbolito = tree
+contador = 1
+# Letra que representa, anulable, primera posicion, ultima posicion, siguiente posicion
+# node_value, is_leaf
+for i in arbol.postorder:
+    data[str(contador)] = {
+        "Valor": caracteres[i.value],
+        "Anulable": None,
+        "Primera posicion": None,
+        "Ultima posicion": None,
+        "Siguiente posicion": [],
+    }
+    i.value = contador
+    contador +=1
+for hoja in arbol.leaves:
+    for letra in alfabeto:
+        if letra == data[str(hoja.value)]["Valor"]:
+            if letra not in alfabeto2:
+                alfabeto2.append(letra)
+alfabeto2.sort()
+
+
+for nodo in arbol.postorder:
+    anulable(nodo, data)
+    primera_posicion(nodo, data)
+    ultima_posicion(nodo, data)
+    siguiente_posicion(nodo, data)
+transiciones_directo(transiciones2, arbol, data, alfabeto2)
+
+resultado = simulacion_AFD(transiciones2, w, str(arbol.right.value))
+print("AFD: La cadena pertenece") if resultado else print("AFD: La cadena no pertenece")
+
+
+
+dot_directa = graphviz.Digraph(comment="AFD")
+dot_directa.attr(rankdir='LR', size='15')
+dot_directa.attr(label="\nAFD: Dada una expresión regular")
+dot_directa.attr(fontsize='20')
+dot_directa.attr('node', shape='circle')
+
+for i in transiciones2.keys():
+    estados = ast.literal_eval(i)
+    if str(arbol.right.value) in estados:
+        dot_directa.node(str(transiciones2[i]["Estado"]), str(transiciones2[i]["Estado"]).translate(SUB), shape='doublecircle')
+    else:
+        dot_directa.node(str(transiciones2[i]["Estado"]), str(transiciones2[i]["Estado"]).translate(SUB))
+        
+
+for llave, valor in transiciones2.items():
+    for c in alfabeto2:
+        if valor["Estado"] != None and valor[c] != None:
+            dot_directa.edge(valor["Estado"], valor[c], c)
+
+dot_directa.view()
