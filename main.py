@@ -22,8 +22,7 @@ r = "(b|b)*abb(a|b)*"
 
 # w = input("Ingrese w: ")
 w = "babbaaaaa"
-# w = "b"
-# w = "b"
+w = "b"
 
 
 
@@ -408,7 +407,6 @@ def simulacion_sub(transiciones, w, final):
     for llave, valor in transiciones.items():
         if valor["Estado del AFD"] == current_state:
             estado = ast.literal_eval(llave)
-            print("Estado: ",estado, final)
             if final in estado:
                 return True
             else:
@@ -678,7 +676,7 @@ for llave, valor in sub_afd_transiciones.items():
 dot_subconjuntos.view()
 dot.render(directory='output', filename='Subconjuntos')
 
-simulacionSub = simulacion_sub(sub_afd_transiciones, w, str(arbol.right.value))
+simulacionSub = simulacion_sub(sub_afd_transiciones, w, str("S"+str(contador-1)))
 print("AFD (subconjuntos): La cadena pertenece") if simulacionSub else print("AFD (subconjuntos): La cadena no pertenece")
 
 # ------------------------------ AFD dada una expresion regular ------------------------------
@@ -721,11 +719,8 @@ for nodo in arbol.postorder:
 transiciones_directo(transiciones2, arbol, data, alfabeto2)
 
 resultadoAFD = simulacion_AFD(transiciones2, w, str(arbol.right.value))
-# print("AFD (Directo): La cadena pertenece") if resultado else print("AFD (Directo): La cadena no pertenece")
-if resultadoAFD == True:
-    print("AFD (Directo): La cadena pertenece")
-else:
-    print("AFD (Directo): La cadena no pertenece")
+print("AFD (Directo): La cadena pertenece") if resultadoAFD else print("AFD (Directo): La cadena no pertenece")
+
 
 
 dot_directa = graphviz.Digraph(comment="AFD")
