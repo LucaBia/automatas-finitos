@@ -1,18 +1,24 @@
-// AFD
+// AFN
 digraph {
 	rankdir=LR size=15
 	label="
-AFD: Dada una expresión regular"
+AFN: McNaughton-Yamada-Thompson"
 	fontsize=20
 	node [shape=circle]
-	S0 [label="S₀"]
 	S1 [label="S₁"]
 	S2 [label="S₂"]
-	S3 [label="S₃"]
-	S0 -> S1 [label=a]
-	S0 -> S0 [label=b]
-	S1 -> S2 [label=b]
-	S2 -> S3 [label=b]
-	S3 -> S3 [label=a]
-	S3 -> S3 [label=b]
+	S1 -> S2 [label=0]
+	S2 [label="S₂"]
+	S4 [label="S₄"]
+	S2 -> S4 [label=0]
+	S5 [label="S₅"]
+	S1 [label="S₁"]
+	S5 -> S1 [label="ε"]
+	S6 [label="S₆" shape=doublecircle]
+	S4 [label="S₄"]
+	S4 -> S6 [label="ε"]
+	S5 -> S6 [label="ε"]
+	S4 -> S1 [label="ε"]
+	S0 [label="S₀"]
+	S0 -> S5 [label="ε"]
 }

@@ -17,7 +17,7 @@ class Arbol:
 # r = "(a|b)*abb"
 r = "(b|b)*abb(a|b)*"
 # r = "a+"
-# r = "(00)*"
+r = "(00)*"
 # r = "0"
 
 # w = input("Ingrese w: ")
@@ -29,13 +29,14 @@ w = "b"
 padre_actual = None # instancia cabeza actual
 arboles_temporales = [] # arboles temporales / hijos
 
-alfabeto = "abcdefghijklmnopqrstuvwxyz123456789"
+alfabeto = "abcdefghijklmnopqrstuvwxyz0123456789"
 operadores ="*+?"
 # alfabeto = 0-25 ; operadores= 26(*), 27(+), 28(?) ; 29(.) ; 30(|)
 caracteres = alfabeto + operadores + "." + "|" + "#"
 SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 
 
+# print(caracteres.index(r))
 
 # Valida si el nodo se agrega al arbol principal o a un arbol temporal
 def nuevo_nodo(indice, valor, izquierda, derecha, padre_actual):
