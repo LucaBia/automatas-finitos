@@ -16,9 +16,13 @@ class Arbol:
 # r = "a|b"
 # r = "(a|b)*abb"
 r = "(b|b)*abb(a|b)*"
+# r = "a+"
+# r = "(00)*"
+# r = "0"
 
 # w = input("Ingrese w: ")
 w = "babbaaaaa"
+# w = "b"
 # w = "b"
 
 
@@ -26,7 +30,7 @@ w = "babbaaaaa"
 padre_actual = None # instancia cabeza actual
 arboles_temporales = [] # arboles temporales / hijos
 
-alfabeto = "abcdefghijklmnopqrstuvwxyz"
+alfabeto = "abcdefghijklmnopqrstuvwxyz123456789"
 operadores ="*+?"
 # alfabeto = 0-25 ; operadores= 26(*), 27(+), 28(?) ; 29(.) ; 30(|)
 caracteres = alfabeto + operadores + "." + "|" + "#"
@@ -199,16 +203,13 @@ def analizador_expresion(expresion_regular, indice, padre_actual):
 def binarytree(padre, binary_tree_parent=None):
     if binary_tree_parent is None:
         binary_tree_parent = Node(caracteres.index(padre.valor))
-        # binary_tree_parent = Node(ord(padre.valor))
 
     if padre.izquierda is not None and padre.izquierda.valor is not None:
         binary_tree_parent.left = Node(caracteres.index(padre.izquierda.valor))
-        # binary_tree_parent.left = Node(ord(padre.izquierda.valor))
         binarytree(padre.izquierda, binary_tree_parent.left)
 
     if padre.derecha is not None and padre.derecha.valor is not None:
         binary_tree_parent.right = Node(caracteres.index(padre.derecha.valor))
-        # binary_tree_parent.right = Node(ord(padre.derecha.valor))
         binarytree(padre.derecha, binary_tree_parent.right)
 
     return binary_tree_parent
@@ -394,20 +395,39 @@ def transiciones_directo(transiciones, arbol, data, alfabeto):
         if initial_size == final_size:
             cont = not all(transiciones.values())
 
+def simulacion_sub(transiciones, w, final):
+    current_state = "0"
+    for i in w:
+        llave = ""
+        for key, v in transiciones.items():
+            if v["Estado del AFD"] == current_state and v[i] != None:
+                llave = key
+            elif v["Estado del AFD"] == current_state and v[i] == None:
+                return False
+        current_state = transiciones[llave][i]
+    for llave, valor in transiciones.items():
+        if valor["Estado del AFD"] == current_state:
+            estado = ast.literal_eval(llave)
+            print("Estado: ",estado, final)
+            if final in estado:
+                return True
+            else:
+                return False
+
 def simulacion_AFD(transiciones, w, final):
     estado_actual = "S0"
-    for char in w:
+    for i in w:
         llave = ""
         for k, v in transiciones.items():
-            if v["Estado"] == estado_actual and v[char] != None:
+            if v["Estado"] == estado_actual and v[i] != None:
                 llave = k
-            elif v["Estado"] == estado_actual and v[char] == None:
+            elif v["Estado"] == estado_actual and v[i] == None:
                 return False
-        estado_actual = transiciones[llave][char]
+        estado_actual = transiciones[llave][i]
     for llave, v in transiciones.items():
         if v["Estado"] == estado_actual:
             estados = ast.literal_eval(llave)
-            if final in estados:
+            if int(final) in estados:
                 return True
             else:
                 return False
@@ -503,11 +523,11 @@ for k in arbol_postorder:
         dot.node(str(dic_estados[str(k.value)]["Estado Inicial"]), str(dic_estados[str(k.value)]["Estado Inicial"]).translate(SUB))
         dot.node(str(dic_estados[str(k.left.value)]["Estado Inicial"]), str(dic_estados[str(k.left.value)]["Estado Inicial"]).translate(SUB))
         dot.node(str(dic_estados[str(k.right.value)]["Estado Inicial"]), str(dic_estados[str(k.right.value)]["Estado Inicial"]).translate(SUB))
-        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="ε")
         # se guarda la transicion en la tabla de transiciones
         dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
-        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.right.value)]["Estado Inicial"], label="E")
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.right.value)]["Estado Inicial"], label="ε")
         # se guarda la transicion en la tabla de transiciones
         dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.right.value)]["Estado Inicial"])
 
@@ -517,10 +537,10 @@ for k in arbol_postorder:
             dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB))
         dot.node(str(dic_estados[str(k.left.value)]["Estado Final"]), str(dic_estados[str(k.left.value)]["Estado Final"]).translate(SUB))
         dot.node(str(dic_estados[str(k.right.value)]["Estado Final"]), str(dic_estados[str(k.right.value)]["Estado Final"]).translate(SUB))
-        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="ε")
         dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(k.right.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dot.edge(dic_estados[str(k.right.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="ε")
         dic_transiciones[dic_estados[str(k.right.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
     # El inicial del kleene con el inicial del hijo, el final del hijo con el final de Kleene
@@ -529,7 +549,7 @@ for k in arbol_postorder:
             estado_inicial["Estado Final"] = dic_estados[str(k.value)]["Estado Inicial"]
         dot.node(str(dic_estados[str(k.value)]["Estado Inicial"]), str(dic_estados[str(k.value)]["Estado Inicial"]).translate(SUB))
         dot.node(str(dic_estados[str(k.left.value)]["Estado Inicial"]), str(dic_estados[str(k.left.value)]["Estado Inicial"]).translate(SUB))
-        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="ε")
         dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
         if dic_estados[str(k.value)]["Estado Final"] == "S"+str(contador-1):
@@ -537,13 +557,13 @@ for k in arbol_postorder:
         else:
             dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB))
         dot.node(str(dic_estados[str(k.left.value)]["Estado Final"]), str(dic_estados[str(k.left.value)]["Estado Final"]).translate(SUB))
-        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="ε")
         dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.value)]["Estado Final"], label="ε")
         dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.left.value)]["Estado Inicial"], label="ε")
         dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
     elif dic_estados[str(k.value)]["Valor"] == ".":
@@ -561,10 +581,11 @@ for k in arbol_postorder:
 
 # Se hace el S0 y se conecta
 dot.node(str(estado_inicial["Estado Inicial"]), str(estado_inicial["Estado Inicial"]).translate(SUB))
-dot.edge(estado_inicial["Estado Inicial"], estado_inicial["Estado Final"], label="E")
+dot.edge(estado_inicial["Estado Inicial"], estado_inicial["Estado Final"], label="ε")
 dic_transiciones[estado_inicial["Estado Inicial"]]["E"].append(estado_inicial["Estado Final"])
 
 dot.view()
+dot.render(directory='output', filename='Thompson')
 
 simulacion_afn = simulacion_AFN(w, dic_transiciones, "S"+str(contador-1))
 print("AFN: la cadena pertenece") if simulacion_afn else print("AFN: la cadena no pertenece")
@@ -655,14 +676,16 @@ for llave, valor in sub_afd_transiciones.items():
             dot_subconjuntos.edge(valor["Estado del AFD"], valor[j], j)
 
 dot_subconjuntos.view()
+dot.render(directory='output', filename='Subconjuntos')
 
-
+simulacionSub = simulacion_sub(sub_afd_transiciones, w, str(arbol.right.value))
+print("AFD (subconjuntos): La cadena pertenece") if simulacionSub else print("AFD (subconjuntos): La cadena no pertenece")
 
 # ------------------------------ AFD dada una expresion regular ------------------------------
 # Se agrega el # que representa el ultimo caracter para el estado de aceptacion
-re = "("+r+")#" # para algoritmo 3
+r = "("+r+")#"
 current_node_head2 = None
-current_node_head2 = analizador_expresion(re, None, current_node_head2)
+current_node_head2 = analizador_expresion(r, None, current_node_head2)
 tree = binarytree(current_node_head2)
 
 data = {}
@@ -672,7 +695,6 @@ arbol = tree
 arbolito = tree
 contador = 1
 # Letra que representa, anulable, primera posicion, ultima posicion, siguiente posicion
-# node_value, is_leaf
 for i in arbol.postorder:
     data[str(contador)] = {
         "Valor": caracteres[i.value],
@@ -698,9 +720,12 @@ for nodo in arbol.postorder:
     siguiente_posicion(nodo, data)
 transiciones_directo(transiciones2, arbol, data, alfabeto2)
 
-resultado = simulacion_AFD(transiciones2, w, str(arbol.right.value))
-print("AFD: La cadena pertenece") if resultado else print("AFD: La cadena no pertenece")
-
+resultadoAFD = simulacion_AFD(transiciones2, w, str(arbol.right.value))
+# print("AFD (Directo): La cadena pertenece") if resultado else print("AFD (Directo): La cadena no pertenece")
+if resultadoAFD == True:
+    print("AFD (Directo): La cadena pertenece")
+else:
+    print("AFD (Directo): La cadena no pertenece")
 
 
 dot_directa = graphviz.Digraph(comment="AFD")
@@ -723,3 +748,4 @@ for llave, valor in transiciones2.items():
             dot_directa.edge(valor["Estado"], valor[c], c)
 
 dot_directa.view()
+dot.render(directory='output', filename='Directo')
