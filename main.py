@@ -20,6 +20,8 @@ r = "(b|b)*abb(a|b)*"
 
 # w = input("Ingrese w: ")
 w = "babbaaaaa"
+# w = "b"
+
 
 
 padre_actual = None # instancia cabeza actual
@@ -94,8 +96,6 @@ def expresiones_en_r(expresion_regular):
 
 # Analiza cuando se debe crear un nodo del arbol y el nodo se crea con nuevo_nodo()
 def analizador_expresion(expresion_regular, indice, padre_actual):
-    print("Partial expression:", indice, expresion_regular)
-
     long_exp = len(expresion_regular)
     i = 0
     while i < long_exp:
@@ -260,6 +260,19 @@ def mover(estados, caracter, transiciones):
                             estados_movidos.append(st)
     return estados_movidos
 
+def simulacion_AFN(w, transiciones, estado_final):
+    estados = cerraduraEpsilon("S0", transiciones, [])
+    contador = 1
+    w += "·"
+    inicio = w[0]
+    while inicio != "·":
+        estados = cerraduraEpsilon_s(mover(estados, inicio, transiciones), transiciones)
+        inicio = w[contador]
+        contador += 1
+    if estado_final in estados:
+        return True
+    else:
+        return False
 
 
 padre_actual = analizador_expresion(r, None, padre_actual)
@@ -267,7 +280,7 @@ print(binarytree(padre_actual))
 
 
 arbol = binarytree(padre_actual)
-print(arbol.postorder)
+# print(arbol.postorder)
 
 
 
@@ -415,6 +428,11 @@ dot.edge(estado_inicial["Estado Inicial"], estado_inicial["Estado Final"], label
 dic_transiciones[estado_inicial["Estado Inicial"]]["E"].append(estado_inicial["Estado Final"])
 
 dot.view()
+
+simulacion_afn = simulacion_AFN(w, dic_transiciones, "S"+str(contador-1))
+print("AFN: la cadena pertenece") if simulacion_afn else print("AFN: la cadena no pertenece")
+    
+
 
 
 # ------------------------------ Subconjuntos ------------------------------
