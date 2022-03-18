@@ -1,7 +1,9 @@
 #  Gian Luca Rivera - 18049
 
+from ntpath import join
 from binarytree import Node
 import graphviz
+import ast
 
 class Arbol:
     def __init__(self, valor, izquierda = None, derecha = None):
@@ -212,6 +214,53 @@ def binarytree(padre, binary_tree_parent=None):
 
     return binary_tree_parent
 
+# Hasta donde se puede ir desde un estado moviendo solo con E
+def cerraduraEpsilon(estado, transiciones, estados = []):
+    if estado not in estados:
+        estados.append(estado)
+    # /si hay transiciones con E, se recorre y para cada una vuelve a hacer la cerradura
+    if (len(transiciones[estado]["E"]) > 0):
+        for i in transiciones[estado]["E"]:
+            if i not in estados:
+                estados.append(i)
+            cerraduraEpsilon(i, transiciones, estados)
+    return estados
+
+# Para un conjunto de estados a cada uno le hace la cerradura de epsilon
+def cerraduraEpsilon_s(estados, transiciones):
+    estados_finales = []
+    # se recorre cada estado
+    for i in estados:
+        estado_ = []
+        estado_ = cerraduraEpsilon(i, transiciones, [])
+        estados_finales.append(estado_)
+
+
+    estados_finales_ = []
+    for j in estados_finales:
+        for k in j:
+            estados_finales_.append(k)
+
+    # Se eliminan duplicados
+    estados_finales_ = list(set(estados_finales_))
+    estados_finales_.sort()
+
+    return estados_finales_
+
+# Hasta donde se puede llegar con un caracter segun un conjunto de estados
+def mover(estados, caracter, transiciones):
+    estados_movidos = []
+    for i in estados:
+        for llave, valor in transiciones.items():
+            if llave == i:
+                # si hay transicion para la letra, entonces agrega ese estado
+                if len(valor[caracter]) > 0:
+                    for st in valor[caracter]:
+                        if st not in estados_movidos:
+                            estados_movidos.append(st)
+    return estados_movidos
+
+
 
 padre_actual = analizador_expresion(r, None, padre_actual)
 print(binarytree(padre_actual))
@@ -252,28 +301,28 @@ alfabeto_exp.append("E")
 
 contador = 1 # S0 = 0 (Inicial)
 # Se llena el diccionario con los estados iniciales y finales de cada nodo
-for nodo in arbol_postorder:
+for j in arbol_postorder:
     # El or crea dos estados mas, dos nodos
-    if dic_estados[str(nodo.value)]["Valor"] == "|":
-        dic_estados[str(nodo.value)]["Estado Inicial"] = "S"+str(contador)
+    if dic_estados[str(j.value)]["Valor"] == "|":
+        dic_estados[str(j.value)]["Estado Inicial"] = "S"+str(contador)
         contador += 1
-        dic_estados[str(nodo.value)]["Estado Final"] = "S"+str(contador)
+        dic_estados[str(j.value)]["Estado Final"] = "S"+str(contador)
         contador += 1
     # Concatenación el final del hijo de la izquierda es el inicial del nodo de la derecha; el inicial de la derecha es el final de la izquierda
-    elif dic_estados[str(nodo.value)]["Valor"] == ".":
-        dic_estados[str(nodo.right.value)]["Estado Inicial"] = dic_estados[str(nodo.left.value)]["Estado Final"] 
-        dic_estados[str(nodo.value)]["Estado Inicial"] = dic_estados[str(nodo.left.value)]["Estado Inicial"]
-        dic_estados[str(nodo.value)]["Estado Final"] = dic_estados[str(nodo.right.value)]["Estado Final"]
+    elif dic_estados[str(j.value)]["Valor"] == ".":
+        dic_estados[str(j.right.value)]["Estado Inicial"] = dic_estados[str(j.left.value)]["Estado Final"] 
+        dic_estados[str(j.value)]["Estado Inicial"] = dic_estados[str(j.left.value)]["Estado Inicial"]
+        dic_estados[str(j.value)]["Estado Final"] = dic_estados[str(j.right.value)]["Estado Final"]
     # Se crean dos estados nuevos como or
-    elif dic_estados[str(nodo.value)]["Valor"] == "*":
-        dic_estados[str(nodo.value)]["Estado Inicial"] = "S"+str(contador)
+    elif dic_estados[str(j.value)]["Valor"] == "*":
+        dic_estados[str(j.value)]["Estado Inicial"] = "S"+str(contador)
         contador += 1
-        dic_estados[str(nodo.value)]["Estado Final"] = "S"+str(contador)
+        dic_estados[str(j.value)]["Estado Final"] = "S"+str(contador)
         contador += 1
     else:
-        dic_estados[str(nodo.value)]["Estado Inicial"] = "S"+str(contador)
+        dic_estados[str(j.value)]["Estado Inicial"] = "S"+str(contador)
         contador += 1
-        dic_estados[str(nodo.value)]["Estado Final"] = "S"+str(contador)
+        dic_estados[str(j.value)]["Estado Final"] = "S"+str(contador)
         contador += 1
 
 # Estado inicial siempre es S0 pero al que se conecta no siempre es S1 pero si por defecto para luego actualizar este valor
@@ -294,71 +343,71 @@ for i in range(contador):
     for letra in alfabeto_exp:
         dic_transiciones["S"+str(i)][letra] = []
 
-for nodo in arbol_postorder:
+for k in arbol_postorder:
     # Si es or, se conecta el inicial del or con el inicial de los dos hijos. El final de los hijos se conecta con el final del or
     # Poner estado inicial del or hacia el estado inicial de los hijos. El estado final de los hijos hacie el estado final del or
-    if dic_estados[str(nodo.value)]["Valor"] == "|":
+    if dic_estados[str(k.value)]["Valor"] == "|":
         # El final estate de s0 es el inical del or
-        if dic_estados[str(nodo.left.value)]["Estado Inicial"] == estado_inicial["Estado Final"]:
-            estado_inicial["Estado Final"] = dic_estados[str(nodo.value)]["Estado Inicial"]
-        dot.node(str(dic_estados[str(nodo.value)]["Estado Inicial"]), str(dic_estados[str(nodo.value)]["Estado Inicial"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.left.value)]["Estado Inicial"]), str(dic_estados[str(nodo.left.value)]["Estado Inicial"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.right.value)]["Estado Inicial"]), str(dic_estados[str(nodo.right.value)]["Estado Inicial"]).translate(SUB))
-        dot.edge(dic_estados[str(nodo.value)]["Estado Inicial"], dic_estados[str(nodo.left.value)]["Estado Inicial"], label="E")
+        if dic_estados[str(k.left.value)]["Estado Inicial"] == estado_inicial["Estado Final"]:
+            estado_inicial["Estado Final"] = dic_estados[str(k.value)]["Estado Inicial"]
+        dot.node(str(dic_estados[str(k.value)]["Estado Inicial"]), str(dic_estados[str(k.value)]["Estado Inicial"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.left.value)]["Estado Inicial"]), str(dic_estados[str(k.left.value)]["Estado Inicial"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.right.value)]["Estado Inicial"]), str(dic_estados[str(k.right.value)]["Estado Inicial"]).translate(SUB))
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
         # se guarda la transicion en la tabla de transiciones
-        dic_transiciones[dic_estados[str(nodo.value)]["Estado Inicial"]]["E"].append(dic_estados[str(nodo.left.value)]["Estado Inicial"])
+        dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
-        dot.edge(dic_estados[str(nodo.value)]["Estado Inicial"], dic_estados[str(nodo.right.value)]["Estado Inicial"], label="E")
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.right.value)]["Estado Inicial"], label="E")
         # se guarda la transicion en la tabla de transiciones
-        dic_transiciones[dic_estados[str(nodo.value)]["Estado Inicial"]]["E"].append(dic_estados[str(nodo.right.value)]["Estado Inicial"])
+        dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.right.value)]["Estado Inicial"])
 
-        if dic_estados[str(nodo.value)]["Estado Final"] == "S"+str(contador-1):
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
+        if dic_estados[str(k.value)]["Estado Final"] == "S"+str(contador-1):
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
         else:
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.left.value)]["Estado Final"]), str(dic_estados[str(nodo.left.value)]["Estado Final"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.right.value)]["Estado Final"]), str(dic_estados[str(nodo.right.value)]["Estado Final"]).translate(SUB))
-        dot.edge(dic_estados[str(nodo.left.value)]["Estado Final"], dic_estados[str(nodo.value)]["Estado Final"], label="E")
-        dic_transiciones[dic_estados[str(nodo.left.value)]["Estado Final"]]["E"].append(dic_estados[str(nodo.value)]["Estado Final"])
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.left.value)]["Estado Final"]), str(dic_estados[str(k.left.value)]["Estado Final"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.right.value)]["Estado Final"]), str(dic_estados[str(k.right.value)]["Estado Final"]).translate(SUB))
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(nodo.right.value)]["Estado Final"], dic_estados[str(nodo.value)]["Estado Final"], label="E")
-        dic_transiciones[dic_estados[str(nodo.right.value)]["Estado Final"]]["E"].append(dic_estados[str(nodo.value)]["Estado Final"])
+        dot.edge(dic_estados[str(k.right.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dic_transiciones[dic_estados[str(k.right.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
     # El inicial del kleene con el inicial del hijo, el final del hijo con el final de Kleene
-    elif dic_estados[str(nodo.value)]["Valor"] == "*":
-        if dic_estados[str(nodo.left.value)]["Estado Inicial"] == estado_inicial["Estado Final"]:
-            estado_inicial["Estado Final"] = dic_estados[str(nodo.value)]["Estado Inicial"]
-        dot.node(str(dic_estados[str(nodo.value)]["Estado Inicial"]), str(dic_estados[str(nodo.value)]["Estado Inicial"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.left.value)]["Estado Inicial"]), str(dic_estados[str(nodo.left.value)]["Estado Inicial"]).translate(SUB))
-        dot.edge(dic_estados[str(nodo.value)]["Estado Inicial"], dic_estados[str(nodo.left.value)]["Estado Inicial"], label="E")
-        dic_transiciones[dic_estados[str(nodo.value)]["Estado Inicial"]]["E"].append(dic_estados[str(nodo.left.value)]["Estado Inicial"])
+    elif dic_estados[str(k.value)]["Valor"] == "*":
+        if dic_estados[str(k.left.value)]["Estado Inicial"] == estado_inicial["Estado Final"]:
+            estado_inicial["Estado Final"] = dic_estados[str(k.value)]["Estado Inicial"]
+        dot.node(str(dic_estados[str(k.value)]["Estado Inicial"]), str(dic_estados[str(k.value)]["Estado Inicial"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.left.value)]["Estado Inicial"]), str(dic_estados[str(k.left.value)]["Estado Inicial"]).translate(SUB))
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
+        dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
-        if dic_estados[str(nodo.value)]["Estado Final"] == "S"+str(contador-1):
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
+        if dic_estados[str(k.value)]["Estado Final"] == "S"+str(contador-1):
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
         else:
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB))
-        dot.node(str(dic_estados[str(nodo.left.value)]["Estado Final"]), str(dic_estados[str(nodo.left.value)]["Estado Final"]).translate(SUB))
-        dot.edge(dic_estados[str(nodo.left.value)]["Estado Final"], dic_estados[str(nodo.value)]["Estado Final"], label="E")
-        dic_transiciones[dic_estados[str(nodo.left.value)]["Estado Final"]]["E"].append(dic_estados[str(nodo.value)]["Estado Final"])
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB))
+        dot.node(str(dic_estados[str(k.left.value)]["Estado Final"]), str(dic_estados[str(k.left.value)]["Estado Final"]).translate(SUB))
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(nodo.value)]["Estado Inicial"], dic_estados[str(nodo.value)]["Estado Final"], label="E")
-        dic_transiciones[dic_estados[str(nodo.value)]["Estado Inicial"]]["E"].append(dic_estados[str(nodo.value)]["Estado Final"])
+        dot.edge(dic_estados[str(k.value)]["Estado Inicial"], dic_estados[str(k.value)]["Estado Final"], label="E")
+        dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]]["E"].append(dic_estados[str(k.value)]["Estado Final"])
 
-        dot.edge(dic_estados[str(nodo.left.value)]["Estado Final"], dic_estados[str(nodo.left.value)]["Estado Inicial"], label="E")
-        dic_transiciones[dic_estados[str(nodo.left.value)]["Estado Final"]]["E"].append(dic_estados[str(nodo.left.value)]["Estado Inicial"])
+        dot.edge(dic_estados[str(k.left.value)]["Estado Final"], dic_estados[str(k.left.value)]["Estado Inicial"], label="E")
+        dic_transiciones[dic_estados[str(k.left.value)]["Estado Final"]]["E"].append(dic_estados[str(k.left.value)]["Estado Inicial"])
 
-    elif dic_estados[str(nodo.value)]["Valor"] == ".":
+    elif dic_estados[str(k.value)]["Valor"] == ".":
         # los hijos de la concatenacion ya tienen la concatenacion
         pass
     # si es letra, se una el estado inicial con el estado final
     else:
-        dot.node(str(dic_estados[str(nodo.value)]["Estado Inicial"]),str(dic_estados[str(nodo.value)]["Estado Inicial"]).translate(SUB))
-        if str(dic_estados[str(nodo.value)]["Estado Final"]) == "S"+str(contador-1):
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
+        dot.node(str(dic_estados[str(k.value)]["Estado Inicial"]),str(dic_estados[str(k.value)]["Estado Inicial"]).translate(SUB))
+        if str(dic_estados[str(k.value)]["Estado Final"]) == "S"+str(contador-1):
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB), shape='doublecircle')
         else:
-            dot.node(str(dic_estados[str(nodo.value)]["Estado Final"]), str(dic_estados[str(nodo.value)]["Estado Final"]).translate(SUB))
-        dot.edge(str(dic_estados[str(nodo.value)]["Estado Inicial"]), str(dic_estados[str(nodo.value)]["Estado Final"]), label=dic_estados[str(nodo.value)]["Valor"])
-        dic_transiciones[dic_estados[str(nodo.value)]["Estado Inicial"]][dic_estados[str(nodo.value)]["Valor"]].append(dic_estados[str(nodo.value)]["Estado Final"])
+            dot.node(str(dic_estados[str(k.value)]["Estado Final"]), str(dic_estados[str(k.value)]["Estado Final"]).translate(SUB))
+        dot.edge(str(dic_estados[str(k.value)]["Estado Inicial"]), str(dic_estados[str(k.value)]["Estado Final"]), label=dic_estados[str(k.value)]["Valor"])
+        dic_transiciones[dic_estados[str(k.value)]["Estado Inicial"]][dic_estados[str(k.value)]["Valor"]].append(dic_estados[str(k.value)]["Estado Final"])
 
 # Se hace el S0 y se conecta
 dot.node(str(estado_inicial["Estado Inicial"]), str(estado_inicial["Estado Inicial"]).translate(SUB))
@@ -366,3 +415,88 @@ dot.edge(estado_inicial["Estado Inicial"], estado_inicial["Estado Final"], label
 dic_transiciones[estado_inicial["Estado Inicial"]]["E"].append(estado_inicial["Estado Final"])
 
 dot.view()
+
+
+# ------------------------------ Subconjuntos ------------------------------
+sub_afd_transiciones = {}
+# print(subconjuntos(dic_transiciones, sub_afd_transiciones, alfabeto_exp))
+
+contador2 = 0
+# Se quita epsilon ya que no existe transiciones con cadena vacia en AFD
+alfabeto_exp.remove("E")
+
+# Cerradura epsilon de estado inicial de afn
+cerradura_epsilon = cerraduraEpsilon("S0", dic_transiciones, [])
+cerradura_epsilon.sort()
+
+# Diccionario de transiciones de AFD, la llave son los conjuntos de estados
+sub_afd_transiciones[str(cerradura_epsilon)] = {
+    "Estado del AFD": str(contador2),
+}
+
+# Transiciones con cada uno si existe
+for i in alfabeto_exp:
+    sub_afd_transiciones[str(cerradura_epsilon)][i] = None
+
+contador2 += 1
+continuar = True
+while(continuar):
+    sub_afd_long = len(sub_afd_transiciones)
+    estados_afd = list(sub_afd_transiciones.keys())
+    # Se recorre el diccionario
+    for j in estados_afd:
+        # Se recorre cada uno de los elementos
+        for i in alfabeto_exp:
+            if sub_afd_transiciones[j][i] == None:
+                nuevo_estado = []
+                split = ast.literal_eval(j)
+                nuevo_estado = cerraduraEpsilon_s(mover(split, i, dic_transiciones), dic_transiciones)
+
+                # Si el conjunto no es llave de diccionario, se agrega como nueva llave y se actualiza las transiciones
+                if len(nuevo_estado) > 0:
+                    if str(nuevo_estado) not in sub_afd_transiciones:
+                        sub_afd_transiciones[str(nuevo_estado)] = {
+                            "Estado del AFD": str(contador2)
+                        }
+                        for letter in alfabeto_exp:
+                            sub_afd_transiciones[str(nuevo_estado)][letter] = None
+                        contador2 +=1
+                        sub_afd_transiciones[j][i] = sub_afd_transiciones[str(nuevo_estado)]["Estado del AFD"]
+                    # Si ya estaba en la lista, se agrega el estado nuevo a la transicion evaluada 
+                    else:
+                        sub_afd_transiciones[j][i] = sub_afd_transiciones[str(nuevo_estado)]["Estado del AFD"]
+    final_size = len(sub_afd_transiciones)
+    if sub_afd_long == final_size:
+        continuar = not all(sub_afd_transiciones.values())
+
+
+# Dibujo AFD por subconjuntos 
+dot_subconjuntos = graphviz.Digraph(comment="AFD")
+dot_subconjuntos.attr(rankdir='LR', size='15')
+dot_subconjuntos.attr(label="\nAFD: Subconjuntos")
+dot_subconjuntos.attr(fontsize='20')
+dot_subconjuntos.attr('node', shape='circle')
+
+# Se dibujan los nodos de afd por subconjuntos
+for i in sub_afd_transiciones.keys():
+    estados = ast.literal_eval(i)
+    if ("S"+str(contador-1)) in estados:
+        dot_subconjuntos.node(sub_afd_transiciones[i]["Estado del AFD"], sub_afd_transiciones[i]["Estado del AFD"], shape='doublecircle')
+    else:
+        dot_subconjuntos.node(sub_afd_transiciones[i]["Estado del AFD"], sub_afd_transiciones[i]["Estado del AFD"])
+        
+
+for llave, valor in sub_afd_transiciones.items():
+    for j in alfabeto_exp:
+        if valor["Estado del AFD"] != None and valor[j] != None:
+            estados = ast.literal_eval(llave)
+
+            # Estado final
+            if ("S"+str(contador-1)) in estados:
+                dot_subconjuntos.node(valor["Estado del AFD"], valor["Estado del AFD"],  shape='doublecircle')
+            else:
+                dot_subconjuntos.node(valor["Estado del AFD"], valor["Estado del AFD"])
+            dot_subconjuntos.node(valor[j], valor[j])
+            dot_subconjuntos.edge(valor["Estado del AFD"], valor[j], j)
+
+dot_subconjuntos.view()
